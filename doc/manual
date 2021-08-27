@@ -1,0 +1,31 @@
+__Structure__
+File "schumann_processing_class.py" contains "Schumann_processing" class, which is used to parse diurnal magnetic field time series from text file, calculate ELF spectral data and 
+Schumann Resonance parameters.
+File "example.py" contains example of script usage.
+___________
+
+***Input data***
+Diurnal text file of one column (magnetic field component), for example
+********************
+-8.5992875264e+001
+4.6584564939e+001
+9.6051658652e+001
+-2.2761243000e+000
+-1.1872039546e+002
+-9.9037484128e+001
+3.1182116102e+001
+9.8590576957e+001
+1.3902567224e+001
+-1.1020667897e+002
+*******************
+Magnetometers dump rate is 256 Hz, that is why diurnal input file contains 22118400 samples.
+
+***Output data***
+Each output diurnal file is organized in binary h5 format. It ontaines three datasets:
+    - fourier spectrum,
+    - approximation curve parameters,
+    - approximation curve errors.
+Fourier spectrum dataset containes ELF spectra (5-40 Hz) for each 12-min interval. It is characterized with attributes: amplitude, accumulation interval, max/min frequency, window 
+width and spectral frequency step.
+
+Approximation curve parameters ..
