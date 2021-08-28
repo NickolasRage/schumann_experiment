@@ -5,7 +5,7 @@ File "example.py" contains example of script usage.
 ___________
 
 ***Input data***
-Diurnal text file of one column (magnetic field component), for example
+Binary h5 file with diurnal time series of magnetic field components, for example
 ********************
 -8.5992875264e+001
 4.6584564939e+001
@@ -17,6 +17,7 @@ Diurnal text file of one column (magnetic field component), for example
 9.8590576957e+001
 1.3902567224e+001
 -1.1020667897e+002
+	........
 *******************
 Magnetometers dump rate is 256 Hz, that is why diurnal input file contains 22118400 samples.
 
@@ -25,7 +26,11 @@ Each output diurnal file is organized in binary h5 format. It ontaines three dat
     - fourier spectrum,
     - approximation curve parameters,
     - approximation curve errors.
-Fourier spectrum dataset containes ELF spectra (5-40 Hz) for each 12-min interval. It is characterized with attributes: amplitude, accumulation interval, max/min frequency, window 
+"Fourier spectrum" represents 2d periodogram, consisting of ELF spectra (5-40 Hz) for each 12-min interval. It is characterized with attributes: amplitude, accumulation interval, max/min frequency, window 
 width and spectral frequency step.
 
-Approximation curve parameters ..
+"Approximation curve parameters" represents 2d dataset (time_intervals x SR parameters), consisting of SR parameter arrays for each 12-min interval.
+Every array has a form: [a1, a2, a3, f1, f2, f3, s1, s2, s3, m, n] and describes a Lorensian curve (with additional linear term) for the first 3 SR. 
+"fi" is i-th resonance frequency, "ai" is i-th peak amplitude, "si" is i-th resonance peak width, "m", "n" - represent additional linear term.
+
+"Approximation curve errors" represents 2d dataset of "Approximation curve parameters" errors, resulting from ELF spectrum approximation procedure.

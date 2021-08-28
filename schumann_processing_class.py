@@ -31,6 +31,8 @@ class Schumann_processing:
     __h5_up_freq = 40
     __h5_output_paramter = 1
 
+    # Calibration file
+    __calibration_file = ''
     ######################################################################
     
     # Processing for a month file
@@ -50,7 +52,7 @@ class Schumann_processing:
         self.__calibration_file = calibration_name
 
     # Processing for a day file
-    def Process_day_data(self, name, month_name=''):
+    def Process_txt_day_data(self, name, month_name=''):
         # Set month average SR file
         self.__month_file_path = month_name
         # Calculate parameters of windows and intervals
@@ -80,6 +82,43 @@ class Schumann_processing:
 
         if (self.__calibration_file==''):
             print("There is no calibration file. All resonance amplitudes are in terms of mV/sqrt(Hz)")
+
+    # Processing for a day file
+    def Process_h5_day_data(self, name, month_name=''):
+        # Set month average SR file
+        self.__month_file_path = month_name
+        # Calculate parameters of windows and intervals
+        self.__Calculate_Mesh_Values()
+        
+        # Check window parameters
+        self.__Check_Window_Sampling()
+        
+        # Load h5 dictionary with field data
+        dict_h5_data = self.__Load_h5_File(name)
+        for its in (list(dict_h5_data.keys())):
+            #Search number of time_bulk intervals in file
+            self.__number_of_bulks = int(len(dict_h5_data[its][:])//self.__number_of_samples_in_bulk)
+            data = dict_h5_data[its][0:int(self.__number_of_bulks*self.__number_of_samples_in_bulk)].reshape((self.__number_of_bulks, self.__number_of_samples_in_bulk))
+            print("Number_of_bulks_in_component", its, "=", self.__number_of_bulks)
+            self.__Initialize_Arrays_For_FFT_data()
+            
+            # Set resonance array for each time bulk
+            init_bulk_func_params, init_bulk_err_params = self.__Set_Initial_Resonance_Arrays()
+
+            #Process all bulks
+            print('Begin diurnal data processing for', its, '..')
+            for j in range (0,self.__number_of_bulks):
+                self.__bulks[j], self.__bulk_func_params[j], self.__bulk_err_params[j] = self.__Calculate_FFT_and_Resonances(data[j], init_bulk_func_params[j], init_bulk_err_params[j])
+                # Check resonance paramters
+                self.__bulk_func_params[j], self.__bulk_err_params[j] = self.__Check_Resonance_Parameters_Adequacy(self.__bulk_func_params[j], self.__bulk_err_params[j])
+            print('Diurnal data processing finished.')
+            
+            # Set frequency array for output spectrum
+            self.__freq_arr = np.linspace(self.__h5_low_freq, self.__h5_up_freq, self.__h5_freq_up_index-self.__h5_freq_low_index)
+
+            if (self.__calibration_file==''):
+                print("There is no calibration file. All resonance amplitudes are in terms of mV/sqrt(Hz)")
+            self.Make_H5_Day_Dump(its+'.h5')
 
 
         
@@ -263,7 +302,15 @@ class Schumann_processing:
         self.__number_of_bulks = int(len(data)//self.__number_of_samples_in_bulk)
         print("Number_of_bulks_in_file =", self.__number_of_bulks)
         return data[0:int(self.__number_of_bulks*self.__number_of_samples_in_bulk)].reshape((self.__number_of_bulks, self.__number_of_samples_in_bulk))
-
+    
+    def __Load_h5_File(self, file_name):
+        try:
+            print("Uploading ", file_name, " ...")
+            h = h5py.File(file_name, 'r')
+            return h
+        except OSError:
+            print("There is no input file. Check the file name...")
+        
 
     def Make_H5_Day_Dump(self, data_name, h5_spectrum_flag=1):
         #data_path = "./anual_average/" + str(year) + "/" + str(month) + "/" + component + "_" + str(day) + '.h5'
@@ -286,6 +333,7 @@ class Schumann_processing:
         dat.attrs['max frequency [Hz]'] = 24
         dat = hf.create_dataset('approximation curve errors', data=self.__bulk_err_params)
         hf.close()
+        print('Binary output file has been made.')
 
     def __Create_curve_fitting_fuction(self,spectrum, initial_parameters):
         # Detect frequency step for spectrum
