@@ -13,14 +13,14 @@ class Schumann_processing:
     # Set registration data parameters (change if needed)
     __sampling_frequency = 256   # sampling frequency of a monitoring station
     __time_bulk = 12*60 # [seconds] Is a statically significant time interval.
-    __window_width = 8  # [seconds] shows window width for each 10 minute interval
+    __window_width = 8  # [seconds] shows window width for each 12 minute interval
 
     # Set samples in window (Modified window width for FFT)
     __fft_window_sampling = 2**11 # Calculate_number_of_samples_for_fft(window_width*sampling_frequency)
     
     # Standart resonance parameters
-    # [a1, a2, a3, f1, f2, f3, s1, s2, s3, m, n] ('ai' for i-th amplitude, 'fi' for i-th frequency, 'si' for i-th resonance peak width, m and n for linear term)
-    __standart_resonance_parameters = np.array([0.2,0.2,0.2, 8.011,14.2,20.63, 1.78,1.94,2.56, 0.0, 0.0])
+    # [a1, a2, a3, f1, f2, f3, s1, s2, s3] ('ai' for i-th amplitude, 'fi' for i-th frequency, 'si' for i-th resonance peak width, m and n for linear term)
+    __standart_resonance_parameters = np.array([0.2,0.2,0.2, 8.011,14.2,20.63, 1.78,1.94,2.56])
     
     # Spectrum part for the fitting procedure, which contains three first resonance frequencies
     __f_min = 6
@@ -156,7 +156,7 @@ class Schumann_processing:
         fourier_for_bulk = self.__Calibrate_spectrum(fourier_for_bulk)
         
         # Create fitting curve
-        approx_params, errs = self.__Create_curve_fitting_fuction(fourier_for_bulk, init_bulk_func_params)
+        approx_params, errs = self.__Create_curve_fitting_fuction(fourier_for_bulk**2, init_bulk_func_params)
 
         # Output fourier array is chopped for output
         return fourier_for_bulk[self.__h5_freq_low_index:self.__h5_freq_up_index], approx_params, errs
@@ -365,8 +365,8 @@ class Schumann_processing:
         return self.__get_parameters(out_s0)
 
     def __get_parameters(self,output):
-        val= np.zeros(11)
-        err= np.zeros(11)
+        val= np.zeros(9)
+        err= np.zeros(9)
         val[0]=output.params['a1'].value
         val[1]=output.params['a2'].value
         val[2]=output.params['a3'].value
@@ -376,8 +376,7 @@ class Schumann_processing:
         val[6]=output.params['s1'].value
         val[7]=output.params['s2'].value
         val[8]=output.params['s3'].value
-        val[9]=output.params['m'].value
-        val[10]=output.params['n'].value
+
 
         err[0]=output.params['a1'].stderr
         err[1]=output.params['a2'].stderr
@@ -388,15 +387,13 @@ class Schumann_processing:
         err[6]=output.params['s1'].stderr
         err[7]=output.params['s2'].stderr
         err[8]=output.params['s3'].stderr
-        err[9]=output.params['m'].stderr
-        err[10]=output.params['n'].stderr
         return val,err
 
     def __minimize_residual_function(self, params, x, data):
         v= params.valuesdict()     
         model = v['a1']/(1+((x-v['f1'])**2)/v['s1']**2)+\
                     v['a2']/(1+((x-v['f2'])**2)/v['s2']**2)+\
-                    v['a3']/(1+((x-v['f3'])**2)/v['s3']**2)+v['m']*x+v['n']      
+                    v['a3']/(1+((x-v['f3'])**2)/v['s3']**2)    
         return (data-model)
 
     def __define_minimization_parameters(self,params,val):
@@ -409,8 +406,7 @@ class Schumann_processing:
         params.add('s1', value= val[6])
         params.add('s2', value= val[7])
         params.add('s3', value= val[8])    
-        params.add('m', value= val[9])
-        params.add('n', value= val[10])
+
     
     def Make_TXT_Day_Dump(self,day, month, year, bulk, func_params, err_params):
         param_path = "./anual_average/" + str(year) + "/" + str(month) + "/parameter_" + component + "_" + str(day)
